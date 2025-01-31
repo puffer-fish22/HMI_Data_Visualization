@@ -3,9 +3,19 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
 
+#创建布局
+fig = make_subplots(
+    rows=1, cols=2,  # 设置1行3列布局
+    column_widths=[0.7, 0.3],  # 每列宽度比例
+    specs=[[{"type": "sankey"}, {"type": "scatter"}]],  # 定义每列的图表类型
+    horizontal_spacing=0.03  # 控制子图之间的间距
+)
+
 # 读取 Excel 数据
 excel_path = r"C:\Users\Lihanfei\Desktop\data.xlsx"  # 替换为你的 Excel 文件路径
 data = pd.read_excel(excel_path)
+
+
 
 # 获取所有阶段的列名
 columns = data.columns  # 所有阶段列名
@@ -39,20 +49,32 @@ node_colors = ["rgba(70, 130, 180, 0.8)" for _ in all_nodes]
 # 定义连接的权重（可以统一为 1 或自定义）
 values = [1 for _ in source_indices]
 
-# 创建桑基图
-fig = make_subplots(
-    rows=1, cols=3,  # 设置1行3列布局
-    column_widths=[0.5, 0.3, 0.2],  # 每列宽度比例
-    specs=[[{"type": "sankey"}, {"type": "scatter"}, {"type": "scatter"}]],  # 定义每列的图表类型
-    horizontal_spacing=0.03  # 控制子图之间的间距
-)
+# 计算所有节点数量
+total_nodes = len(all_nodes)
 
+# 只为最后几个节点指定位置，前面的节点留空
+x_positions = [None] * total_nodes  # 先初始化为 None，让 Plotly 自动布局
+y_positions = [None] * total_nodes  
+
+# 例如：最后两个节点（第 total_nodes-2 和 total_nodes-1 个）手动设置位置
+x_positions[97] = 0.9  # 让倒数第二个节点靠右
+y_positions[97] = 0.3  # 控制垂直方向
+
+x_positions[96] = 0.9  # 让最后一个节点更靠右
+y_positions[96] = 0.7  # 控制垂直方向
+
+# 创建桑基图
 fig.add_trace(
     go.Sankey(
+        arrangement="snap",
         node=dict(
             pad=5,  # 节点之间的间距
-            thickness=20,  # 节点厚度
-            label=["" if i < len(data[columns[0]]) else node for i, node in enumerate(all_nodes)],  # 隐藏第一列节点
+            thickness=20,  # 节点厚度 
+            label = [
+                "" if i<74 or i >=95 else node
+                for i, node in enumerate(all_nodes)
+            ],
+
             customdata=all_nodes,  # 节点名称存储在 customdata 中
             hovertemplate="%{customdata}<extra></extra>",  # 悬停时显示名称
             
@@ -67,89 +89,6 @@ fig.add_trace(
     row=1, col=1  # 指定位置为第1行第1列
 )
 
-
-
-
-# 定义分支数据
-branches = [
-    {"x": [0, 1], "y": [0, 0], "color": "teal", "hoverinfo": ["C 从“信息系统”发展为未来的“全方位可访问性”", ""]},   # 起始分支
-    {"x": [1, 1.5, 2], "y": [0, -0.4, -0.45], "color": "teal", "hoverinfo": ["", "", None]},   # 第一条分支
-    {"x": [1, 1.5, 2], "y": [0, -0.3, -0.35], "color": "teal", "hoverinfo": ["", "", None]},  # 第二条分支
-    {"x": [1, 1.5, 2], "y": [0, -0.2, -0.25], "color": "teal", "hoverinfo": ["", "", None]},  # 第三条分支
-    {"x": [1, 1.5, 2], "y": [0, -0.1, -0.15], "color": "teal", "hoverinfo": ["", "", None]},  # 第四条分支
-    {"x": [1, 1.5, 2], "y": [0, 0, 0], "color": "teal", "hoverinfo": ["", "", None]},  # 第五条分支
-    {"x": [1, 1.5, 2], "y": [0, 0.1, 0.15], "color": "teal", "hoverinfo": ["", "", None]},  # 第六条分支
-    {"x": [1, 1.5, 2], "y": [0, 0.2, 0.25], "color": "teal", "hoverinfo": ["", "", None]},  # 第七条分支
-    {"x": [1, 1.5, 2], "y": [0, 0.3, 0.35], "color": "teal", "hoverinfo": ["", "", None]},  # 第八条分支
-    {"x": [1, 1.5, 2], "y": [0, 0.4, 0.45], "color": "teal", "hoverinfo": ["", "", None]},  # 第九条分支
-    
-    {"x": [0, 1], "y": [1, 1], "color": "green", "hoverinfo": ["B 从保时捷“个性化配置”发展为未来的“智感科技融合”", ""]},   # 起始分支
-    {"x": [1, 1.5, 2], "y": [1, 0.6, 0.55], "color": "green", "hoverinfo": ["", "", None]},   # 第一条分支
-    {"x": [1, 1.5, 2], "y": [1, 0.7, 0.65], "color": "green", "hoverinfo": ["", "", None]},  # 第二条分支
-    {"x": [1, 1.5, 2], "y": [1, 0.8, 0.75], "color": "green", "hoverinfo": ["", "", None]},  # 第三条分支
-    {"x": [1, 1.5, 2], "y": [1, 0.9, 0.85], "color": "green", "hoverinfo": ["", "", None]},  # 第四条分支
-    {"x": [1, 1.5, 2], "y": [1, 1, 1], "color": "green", "hoverinfo": ["", "", None]},  # 第五条分支
-    {"x": [1, 1.5, 2], "y": [1, 1.1, 1.15], "color": "green", "hoverinfo": ["", "", None]},  # 第六条分支
-    {"x": [1, 1.5, 2], "y": [1, 1.2, 1.25], "color": "green", "hoverinfo": ["", "", None]},  # 第七条分支
-    {"x": [1, 1.5, 2], "y": [1, 1.3, 1.35], "color": "green", "hoverinfo": ["", "", None]},  # 第八条分支
-    {"x": [1, 1.5, 2], "y": [1, 1.4, 1.45], "color": "green", "hoverinfo": ["", "", None]},  # 第九条分支
-    
-    {"x": [0, 1], "y": [2,2], "color": "yellow", "hoverinfo": ["A 赋予“车联功能”以未来的“自然生态美感”", ""]},   # 起始分支
-    {"x": [1, 1.5, 2], "y": [2, 1.6, 1.55], "color": "yellow", "hoverinfo": ["", "", None]},   # 第一条分支
-    {"x": [1, 1.5, 2], "y": [2, 1.7, 1.65], "color": "yellow", "hoverinfo": ["", "", None]},  # 第二条分支
-    {"x": [1, 1.5, 2], "y": [2, 1.8, 1.75], "color": "yellow", "hoverinfo": ["", "", None]},  # 第三条分支
-    {"x": [1, 1.5, 2], "y": [2, 1.9, 1.85], "color": "yellow", "hoverinfo": ["", "", None]},  # 第四条分支
-    {"x": [1, 1.5, 2], "y": [2, 2, 2], "color": "yellow", "hoverinfo": ["", "", None]},  # 第五条分支
-    {"x": [1, 1.5, 2], "y": [2, 2.1, 2.15], "color": "yellow", "hoverinfo": ["", "", None]},  # 第六条分支
-    {"x": [1, 1.5, 2], "y": [2, 2.2, 2.25], "color": "yellow", "hoverinfo": ["", "", None]},  # 第七条分支
-    {"x": [1, 1.5, 2], "y": [2, 2.3, 2.35], "color": "yellow", "hoverinfo": ["", "", None]},  # 第八条分支
-    {"x": [1, 1.5, 2], "y": [2, 2.4, 2.45], "color": "yellow", "hoverinfo": ["", "", None]},  # 第九条分支
-
-    {"x": [0, 1], "y": [-1, -1], "color": "blue", "hoverinfo": ["D 从“操控界面”发展为未来的“数据驱动个性化”", ""]},   # 起始分支
-    {"x": [1, 1.5, 2], "y": [-1, -1.4, -1.45], "color": "blue", "hoverinfo": ["", "", None]},   # 第一条分支
-    {"x": [1, 1.5, 2], "y": [-1, -1.3, -1.35], "color": "blue", "hoverinfo": ["", "", None]},  # 第二条分支
-    {"x": [1, 1.5, 2], "y": [-1, -1.2, -1.25], "color": "blue", "hoverinfo": ["", "", None]},  # 第三条分支
-    {"x": [1, 1.5, 2], "y": [-1, -1.1, -1.15], "color": "blue", "hoverinfo": ["", "", None]},  # 第四条分支
-    {"x": [1, 1.5, 2], "y": [-1, -1, -1], "color": "blue", "hoverinfo": ["", "", None]},  # 第五条分支
-    {"x": [1, 1.5, 2], "y": [-1, -0.9, -0.85], "color": "blue", "hoverinfo": ["", "", None]},  # 第六条分支
-    {"x": [1, 1.5, 2], "y": [-1, -0.8, -0.75], "color": "blue", "hoverinfo": ["", "", None]},  # 第七条分支
-    {"x": [1, 1.5, 2], "y": [-1, -0.7, -0.65], "color": "blue", "hoverinfo": ["", "", None]},  # 第八条分支
-    {"x": [1, 1.5, 2], "y": [-1, -0.6, -0.55], "color": "blue", "hoverinfo": ["", "", None]},  # 第九条分支
-
-    {"x": [0, 1], "y": [-2, -2], "color": "purple", "hoverinfo": ["E 从“多感官体验”发展为未来的“身心愉悦关怀”", ""]},   # 起始分支
-    {"x": [1, 1.5, 2], "y": [-2, -2.4, -2.45], "color": "purple", "hoverinfo": ["", "", None]},   # 第一条分支
-    {"x": [1, 1.5, 2], "y": [-2, -2.3, -2.35], "color": "purple", "hoverinfo": ["", "", None]},  # 第二条分支
-    {"x": [1, 1.5, 2], "y": [-2, -2.2, -2.25], "color": "purple", "hoverinfo": ["", "", None]},  # 第三条分支
-    {"x": [1, 1.5, 2], "y": [-2, -2.1, -2.15], "color": "purple", "hoverinfo": ["", "", None]},  # 第四条分支
-    {"x": [1, 1.5, 2], "y": [-2, -2, -2], "color": "purple", "hoverinfo": ["", "", None]},  # 第五条分支
-    {"x": [1, 1.5, 2], "y": [-2, -1.9, -1.85], "color": "purple", "hoverinfo": ["", "", None]},  # 第六条分支
-    {"x": [1, 1.5, 2], "y": [-2, -1.8, -1.75], "color": "purple", "hoverinfo": ["", "", None]},  # 第七条分支
-    {"x": [1, 1.5, 2], "y": [-2, -1.7, -1.65], "color": "purple", "hoverinfo": ["", "", None]},  # 第八条分支
-    {"x": [1, 1.5, 2], "y": [-2, -1.6, -1.55], "color": "purple", "hoverinfo": ["", "", None]},  # 第九条分支
-]
-
-# 添加分支曲线
-for branch in branches:
-    fig.add_trace(
-        go.Scatter(
-            x=branch["x"],
-            y=branch["y"],
-            mode="lines+markers",  # 同时显示线和点
-            line=dict(
-                color=branch["color"],
-                shape="spline",  # 设置线为样条曲线
-                width=1,
-                
-            ),
-            marker=dict(size=0.001),  # 设置点的大小
-            hovertemplate=[f"{info}<extra></extra>" if info else "<extra></extra>" for info in branch["hoverinfo"]],
-            showlegend=False  # 隐藏图例
-        
-        ),
-
-    row=1, col=2 # 指定位置为第1行第2列
-        
-)
 
 # 右侧气泡图
 np.random.seed(0)
@@ -167,27 +106,18 @@ fig.add_trace(
             size=bubble_size,
             color=bubble_color,
             colorscale="Viridis",
-            showscale=True,
-            colorbar=dict(
-                x=0.48,  # 设置颜色比例尺的位置
-                y=0.5,  # 设置颜色比例尺的y位置
-                len=1,  # 设置颜色比例尺的长度
-                thickness=5,  # 设置颜色比例尺的宽度
-                outlinewidth=0,  # 去掉描边
-                tickvals=[],  # 不显示刻度值
-                ticktext=[]  # 不显示刻度文本
-            )
+            showscale=False,
+        
         ),
         showlegend=False
     ),
-    row=1, col=3  # 指定位置为第1行第3列
+    row=1, col=2  # 指定位置为第1行第3列
 )
 
 # 隐藏中间图和右侧图的坐标轴
 fig.update_xaxes(visible=False, row=1, col=2)
 fig.update_yaxes(visible=False, row=1, col=2)
-fig.update_xaxes(visible=False, row=1, col=3)
-fig.update_yaxes(visible=False, row=1, col=3)
+
 
 # 更新布局
 fig.update_layout(
