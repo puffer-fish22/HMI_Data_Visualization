@@ -52,16 +52,50 @@ values = [1 for _ in source_indices]
 # 计算所有节点数量
 total_nodes = len(all_nodes)
 
-# 只为最后几个节点指定位置，前面的节点留空
-x_positions = [None] * total_nodes  # 先初始化为 None，让 Plotly 自动布局
-y_positions = [None] * total_nodes  
+# 先创建所有节点的默认位置，未指定的让 Plotly 自动计算
+x_positions = np.full(total_nodes, np.nan)  # 让 Plotly 处理未指定的位置
+y_positions = np.full(total_nodes, np.nan)
 
-# 例如：最后两个节点（第 total_nodes-2 和 total_nodes-1 个）手动设置位置
-x_positions[97] = 0.9  # 让倒数第二个节点靠右
-y_positions[97] = 0.3  # 控制垂直方向
+# 获取数据中最后一列所有出现的节点
+last_column_values = data[columns[-1]].unique().tolist()
 
-x_positions[96] = 0.9  # 让最后一个节点更靠右
-y_positions[96] = 0.7  # 控制垂直方向
+desired_order_last_column = [
+    "A 赋予“车联功能”以未来的“自然生态美感”", 
+    "B 从保时捷“个性化配置”发展为未来的“智感科技融合”", 
+    "C 从“信息系统”发展为未来的“全方位可访问性”", 
+    "D 从“操控界面”发展为未来的“数据驱动个性化”", 
+    "E 从“多感官体验”发展为未来的“身心愉悦关怀”"
+]
+
+# 确保最后一列节点按 ABCDE 的顺序排列
+ordered_last_column_nodes = [node for node in desired_order_last_column if node in last_column_values]
+
+# 重新调整 all_nodes 的顺序，把 ABCDE 放到最后
+remaining_nodes = [node for node in all_nodes if node not in ordered_last_column_nodes]
+all_nodes = remaining_nodes + ordered_last_column_nodes
+
+# 重新构建索引
+node_indices = {node: idx for idx, node in enumerate(all_nodes)}
+
+
+# 重新映射 source 和 target 索引
+source_indices = []
+target_indices = []
+for i in range(len(columns) - 1):  # 遍历相邻阶段
+    source_col = data[columns[i]]
+    target_col = data[columns[i + 1]]
+    for source, target in zip(source_col, target_col):
+        if source in node_indices and target in node_indices:
+            source_indices.append(node_indices[source])
+            target_indices.append(node_indices[target])
+
+
+# 让 ABCDE 按照顺序在 y 轴均匀分布
+for i, node in enumerate(ordered_last_column_nodes):  # ABCDE 按顺序分配 y 值
+    if node in node_indices:
+        x_positions[node_indices[node]] = 0.9  # 最后一列靠右
+        y_positions[node_indices[node]] = i / (len(ordered_last_column_nodes) - 1) if len(ordered_last_column_nodes) > 1 else 0.5
+
 
 # 创建桑基图
 fig.add_trace(
@@ -71,7 +105,7 @@ fig.add_trace(
             pad=5,  # 节点之间的间距
             thickness=20,  # 节点厚度 
             label = [
-                "" if i<74 or i >=95 else node
+                "" if i<75 or i >=96 else node
                 for i, node in enumerate(all_nodes)
             ],
 
@@ -114,6 +148,12 @@ fig.add_trace(
     row=1, col=2  # 指定位置为第1行第3列
 )
 
+fig.update_layout(
+    title_text="Sankey Diagram with Fixed Last Nodes",
+    font_size=10
+)
+
+
 # 隐藏中间图和右侧图的坐标轴
 fig.update_xaxes(visible=False, row=1, col=2)
 fig.update_yaxes(visible=False, row=1, col=2)
@@ -128,4 +168,3 @@ fig.update_layout(
     paper_bgcolor="black"
 )
 
-fig.show()
