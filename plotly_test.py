@@ -6,11 +6,22 @@ import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 
 # ========== 1. 读取 Excel 数据 ==========
-excel_path = r"C:\\Users\\Lihanfei\\Desktop\\data.xlsx"
+excel_path = r"C:\Users\Lihanfei\Desktop\data.xlsx"
 data = pd.read_excel(excel_path)
 
 # ========== 2. 处理桑基图数据 ==========
-columns = data.columns
+columns = data.columns  # 获取所有阶段的列名
+
+# 目标最后一列的正确顺序（ABCDE）
+desired_order_last_column = [
+    "A 赋予“车联功能”以未来的“自然生态美感”", 
+    "B 从保时捷“个性化配置”发展为未来的“智感科技融合”", 
+    "C 从“信息系统”发展为未来的“全方位可访问性”",
+    "E 从“多感官体验”发展为未来的“身心愉悦关怀”", 
+    "D 从“操控界面”发展为未来的“数据驱动个性化”"
+]
+
+# 构建所有节点及索引
 all_nodes = []
 node_indices = {}
 current_index = 0
@@ -22,33 +33,16 @@ for col in columns:
             all_nodes.append(node)
             current_index += 1
 
-# 计算每列节点的位置
-node_y_positions = [0] * len(all_nodes)
-node_x_positions = [0] * len(all_nodes)
+# 重新调整 all_nodes 的顺序，把 ABCDE 放到最后
+last_column_values = list(set(data[columns[-1]].dropna().tolist()))
+ordered_last_column_nodes = [node for node in desired_order_last_column if node in last_column_values]
+remaining_nodes = [node for node in all_nodes if node not in ordered_last_column_nodes]
+all_nodes = remaining_nodes + ordered_last_column_nodes
 
-for col_idx, col in enumerate(columns):
-    col_nodes = data[col].dropna().unique().tolist()
-    num_nodes = len(col_nodes)
+# 重新构建索引
+node_indices = {node: idx for idx, node in enumerate(all_nodes)}
 
-    # **让 y 轴以 0.5 为中心扩展**
-    min_y, max_y = 0.3, 0.7
-    if num_nodes > 10:
-        min_y, max_y = 0.2, 0.8
-    if num_nodes > 20:
-        min_y, max_y = 0.1, 0.9
-
-    # **均匀分布节点，加入随机扰动**
-    y_positions = np.linspace(min_y, max_y, num_nodes) + np.random.uniform(0, 0.04, num_nodes)
-
-    # **计算 x 轴**
-    x_position = col_idx / (len(columns) - 1)
-
-    for i, node in enumerate(col_nodes):
-        if node in node_indices:
-            node_y_positions[node_indices[node]] = y_positions[i]
-            node_x_positions[node_indices[node]] = x_position
-
-# 生成桑基图的 source 和 target
+# 重新生成 source_indices 和 target_indices
 source_indices = []
 target_indices = []
 for i in range(len(columns) - 1):
@@ -59,7 +53,7 @@ for i in range(len(columns) - 1):
             source_indices.append(node_indices[source])
             target_indices.append(node_indices[target])
 
-# ========== 3. 创建图表 ==========
+# ========== 3. 创建图表布局 ==========
 fig = make_subplots(
     rows=1, cols=2,
     column_widths=[0.7, 0.3],
@@ -70,13 +64,17 @@ fig = make_subplots(
 # ========== 4. 添加桑基图 ==========
 fig.add_trace(
     go.Sankey(
-        domain=dict(x=[0.05, 0.55], y=[0.0, 1.0]),
+        domain=dict(x=[0.05, 0.55], y=[0.3, 1.0]),  # 调整桑基图整体位置，使其上移
         node=dict(
             pad=5,
             thickness=20,
-            label=all_nodes,
-            x=node_x_positions,
-            y=node_y_positions,
+            label=[
+                "" if i < 75 or i >= 96 else node
+                for i, node in enumerate(all_nodes)
+            ],
+            customdata=all_nodes,
+            hovertemplate="%{customdata}<extra></extra>",
+            y=np.linspace(0.3, 1.0, len(all_nodes))  # 让节点整体往上移
         ),
         link=dict(
             source=source_indices,
@@ -88,14 +86,12 @@ fig.add_trace(
     row=1, col=1
 )
 
-# **🚀 关键修正：强制 Plotly 不调整 y 轴**
-fig.update_yaxes(range=[0, 1], constrain="domain", row=1, col=1)
+# ========== 5. 生成右侧半圆泡泡数据 ==========
+num_bubbles = 50  # 泡泡数量
+angles = np.linspace(-np.pi / 2, np.pi / 2, num_bubbles)  # 角度分布在右半圆
+radii = np.random.uniform(1.3, 1.8, num_bubbles)  # 让泡泡分散得更开
 
-# ========== 5. 右侧半圆泡泡图 ==========
-num_bubbles = 50
-angles = np.linspace(-np.pi / 2, np.pi / 2, num_bubbles)
-radii = np.random.uniform(1.3, 1.8, num_bubbles)
-
+# 计算泡泡的 x, y 坐标，使其排列成半圆形
 bubble_x = 1.5 + radii * np.cos(angles) + np.random.uniform(0, 0.1, num_bubbles)
 bubble_y = 0.5 + radii * np.sin(angles) + np.random.uniform(0, 0.1, num_bubbles)
 
@@ -121,13 +117,14 @@ fig.add_trace(
 
 # ========== 7. 更新布局 ==========
 fig.update_layout(
-    title="融合图示例（优化 Y 轴分布 + 0.5 为中心扩展）",
+    title="融合图表示例",
     height=1000,
     width=2000,
     plot_bgcolor="white",
     paper_bgcolor="white",
 )
 
+# 隐藏右侧图的坐标轴
 fig.update_xaxes(visible=False, row=1, col=2)
 fig.update_yaxes(visible=False, row=1, col=2)
 
